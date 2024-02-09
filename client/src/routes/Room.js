@@ -102,6 +102,12 @@ const Room = (props) => {
 
     function callUser(userID) {
         peerRef.current = createPeer(userID);
+        sendChannel.current = peerRef.current.createDataChannel("sendChannel");
+        sendChannel.current.onmessage = handleReceiveMessage;
+    }
+
+    function handleReceiveMessage(e) {
+        setMessages(messages => [...messages, { yours: false, value: e.data }])
     }
 
     function createPeer(userID) {
@@ -139,6 +145,11 @@ const Room = (props) => {
 
     function handleOffer(incoming) {
         peerRef.current = createPeer();
+        peerRef.current.ondatachannel = (event) => {
+            sendChannel.current = event.channel;
+            sendChannel.current.onmessage = handleReceiveMessage;
+        };
+
         const desc = new RTCSessionDescription(incoming.sdp);
         peerRef.current.setRemoteDescription(desc).then(() => {
         }).then(() => {
@@ -181,6 +192,11 @@ const Room = (props) => {
         setText(e.target.value);
     }
 
+    function sendMessage() {
+        sendChannel.current.send(text);
+        setMessages(messages => [...messages, { yours: true, value: text }]);
+        setText("");
+    }
     function renderMessage(message, index) {
         if (message.yours) {
             return (
